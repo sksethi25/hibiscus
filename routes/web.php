@@ -86,6 +86,9 @@ $router->group(
         Route::post('patient/add', 'Auth\RegisterController@admitPatient')->name("admit_patient");
         Route::post('patient/assign', 'Auth\RegisterController@assignToPatient')->name("assign_to_patient");
         Route::post('patient/unassign', 'Auth\RegisterController@unassignToPatient')->name("unassign_to_patient");
+
+
+         Route::post('form/create', 'Auth\RegisterController@createForm')->name("create_form");
   });
 
 

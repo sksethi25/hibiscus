@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
 
 class RoleTableSeeder extends Seeder
 {
@@ -10,8 +11,10 @@ class RoleTableSeeder extends Seeder
      * @return void
      */
     public function run()
+
     {
-        //
+        Schema::disableForeignKeyConstraints();
+        DB::table('role')->truncate();
 
     	DB::table('role')->insert([
         	'id'=>0,
@@ -38,5 +41,6 @@ class RoleTableSeeder extends Seeder
             'name' => 'DME',
             'type' => 'dme'
         ]);
+        Schema::enableForeignKeyConstraints();
     }
 }

@@ -5,19 +5,20 @@ namespace App;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-
 use Illuminate\Database\Eloquent\Model;
-class User extends Authenticatable
-{
-    use Notifiable;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
+class FormFields extends Model
+{
+
+    use SoftDeletes;
     /**
      * The attributes that are mass assignable.
      *
      * @var array
      */
     protected $fillable = [
-        'name','email' , 'phone' ,'password' ,'role_id', 'address','degree','department'
+        'name','form_id','form_fields_type_id','order','hidden'
     ];
 
     /**

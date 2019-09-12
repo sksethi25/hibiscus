@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\{User,Patients,PatientsAssignment};
+use App\{User,Patients,PatientsAssignment,Form, FormFields, FormFieldTypes};
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
@@ -52,10 +52,11 @@ class RegisterController extends Controller
 
         $user= $this->create($request->all());
 
-        $message="User Created.";
-        if(Auth::user()->role_id!=0){
+        if(Auth::Check() && Auth::user()->role_id==0){    
+         $message="User Created."; 
+        }else{
             Auth::login($user);
-            $message='Logged In';
+            $message='User registered and Logged In';
         }
         
 
@@ -372,5 +373,105 @@ class RegisterController extends Controller
             'message' => "Successfully Unassigned.",
             'status' => true
         ]);
+    }
+
+
+      /**
+     * Get a validator for an incoming registration request.
+     *
+     * @param  array  $data
+     * @return \Illuminate\Contracts\Validation\Validator
+     */
+    protected function createFormvalidator(array $data)
+    {
+        return Validator::make($data, [
+            'name' => ['required','string', 'max:255', 'unique:form,name'],
+            'fields'=>['required', 'json']
+        ]);
+    }
+
+    public function createForm(Request $request){
+
+         $validator = $this->createFormvalidator($request->all());
+        if($validator->fails()){
+           return  ApiResponse::validationFailed($validator->errors()->toArray());
+        }
+
+        $name = $request->get('name');
+
+        $fields = $request->get('fields');
+
+        $user = Auth::User();
+        $user_id= $user->id;
+
+        
+
+        $master_form_filed_types=FormFieldTypes::pluck('id')->toArray();
+
+        $form_fields= json_decode($fields, true);
+        $form_fields_data=[];
+        $invalid_form=false;
+        foreach ($form_fields as $fields_arr) {
+            if(isset($fields_arr['name']) && isset($fields_arr['form_fields_type_id']) && isset($fields_arr['order']) && isset($fields_arr['hidden'] ) ){
+
+                if(in_array($fields_arr['form_fields_type_id'], $master_form_filed_types) === false ){
+                    $message="invalid value for form_fields_type_id";
+                    $invalid_form=true;
+                    break;
+                }
+
+                if($fields_arr['order'] <1 ){
+                    $message="invalid value for order";
+                    $invalid_form=true;
+                    break;
+                }
+
+                 if(in_array($fields_arr['hidden'], [0,1])=== false){
+                    $message="invalid value for hidden";
+                    $invalid_form=true;
+                    break;
+                }
+
+                $form_fields_data[]=[
+                    'name'=>$fields_arr['name'],
+                    'form_fields_type_id'    => $fields_arr['form_fields_type_id'],
+                    'order'    => $fields_arr['order'],
+                    'hidden'     => $fields_arr['hidden']
+
+                ];
+            }else{
+                $message="Each field should contain name, form_fields_type_id, order,hidden values";
+                $invalid_form=true;
+                break;
+            }
+        }
+
+
+        if($invalid_form === true){
+            return ApiResponse::validationFailed(['fields'=>$message]);
+        }
+
+        if(sizeof($form_fields_data)>0){
+            $form = Form::create([
+            'name'=>$name,
+            'type'=>'',
+            'created_by_id'=>$user_id
+        ]);
+              foreach ($form_fields_data as $form_fields_arr) {
+                $form_fields_arr['form_id']=$form->id;
+            FormFields::create($form_fields_arr);
+            }
+        }
+
+
+         return ApiResponse::success([
+            'message' => "Form Created Successfully.",
+            'status' => true,
+            'form'=>[
+                'form_id'=>$form->id
+                ]
+            ]
+        );
+
     }
 }
