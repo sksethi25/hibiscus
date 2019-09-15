@@ -44,6 +44,28 @@ class RegisterController extends Controller
     }
 
 
+
+        /**
+     * Get a validator for an incoming registration request.
+     *
+     * @param  array  $data
+     * @return \Illuminate\Contracts\Validation\Validator
+     */
+    protected function registervalidator(array $data)
+    {
+        return Validator::make($data, [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required_if:phone,','nullable', 'string', 'email','unique:users'],
+            'password' => ['required', 'string', 'min:8'],
+            'phone' => ['required_if:email,','nullable', 'string', 'unique:users,phone'],
+            'role_id'=> ['nullable','integer'],
+            'address'=> ['nullable','string', 'max:255'],
+            'degree'=> ['nullable','string', 'max:255'],
+            'department'=> ['nullable','string', 'max:255']
+        ]);
+    }
+
+
     public function register(Request $request){
         $validator = $this->registervalidator($request->all());
         if($validator->fails()){
@@ -109,87 +131,7 @@ class RegisterController extends Controller
 
 
 
-    /**
-     * Get a validator for an incoming registration request.
-     *
-     * @param  array  $data
-     * @return \Illuminate\Contracts\Validation\Validator
-     */
-    protected function registervalidator(array $data)
-    {
-        return Validator::make($data, [
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required_if:phone,','nullable', 'string', 'email','unique:users'],
-            'password' => ['required', 'string', 'min:8'],
-            'phone' => ['required_if:email,','nullable', 'string', 'unique:users,phone'],
-            'role_id'=> ['nullable','integer'],
-            'address'=> ['nullable','string', 'max:255'],
-            'degree'=> ['nullable','string', 'max:255'],
-            'department'=> ['nullable','string', 'max:255']
-        ]);
-    }
 
-      /**
-     * Get a validator for an incoming registration request.
-     *
-     * @param  array  $data
-     * @return \Illuminate\Contracts\Validation\Validator
-     */
-    protected function updatevalidator(array $data, $id)
-    {
-        return Validator::make($data, [
-            'id' => ['nullable','integer'],
-            'name' => ['string', 'max:255'],
-            'email' => ['nullable','string', 'email','unique:users,email,'.$id],
-            //'password' => ['required', 'string', 'min:8'],
-            'phone' => ['nullable','string', 'unique:users,phone,'.$id],
-            'role_id'=> ['integer'],
-            'address'=> ['nullable','string', 'max:255'],
-            'degree'=> ['nullable','string', 'max:255'],
-            'department'=> ['nullable','string', 'max:255']
-        ]);
-    }
-
-      /**
-     * Get a validator for an incoming registration request.
-     *
-     * @param  array  $data
-     * @return \Illuminate\Contracts\Validation\Validator
-     */
-    protected function patientadmissionvalidator(array $data)
-    {
-        return Validator::make($data, [
-            'name' => ['required','string', 'max:255'],
-        ]);
-    }
-
-     /**
-     * Get a validator for an incoming registration request.
-     *
-     * @param  array  $data
-     * @return \Illuminate\Contracts\Validation\Validator
-     */
-    protected function patientassignvalidator(array $data)
-    {
-        return Validator::make($data, [
-            'patient_id' => ['required','integer', 'exists:patients,id'],
-            'assigned_to_id' => ['required','integer', 'exists:users,id'],
-        ]);
-    }
-
-
-     /**
-     * Get a validator for an incoming registration request.
-     *
-     * @param  array  $data
-     * @return \Illuminate\Contracts\Validation\Validator
-     */
-    protected function patientunassignvalidator(array $data)
-    {
-        return Validator::make($data, [
-            'patient_assignment_id' => ['required','integer', 'exists:patients_assignment,id'],
-        ]);
-    }
 
 
 
@@ -218,6 +160,28 @@ class RegisterController extends Controller
             'address'=> $data['address'] ?? '',
             'degree'=> $degree,
             'department'=> $department
+        ]);
+    }
+
+
+     /**
+     * Get a validator for an incoming registration request.
+     *
+     * @param  array  $data
+     * @return \Illuminate\Contracts\Validation\Validator
+     */
+    protected function updatevalidator(array $data, $id)
+    {
+        return Validator::make($data, [
+            'id' => ['nullable','integer'],
+            'name' => ['string', 'max:255'],
+            'email' => ['nullable','string', 'email','unique:users,email,'.$id],
+            //'password' => ['required', 'string', 'min:8'],
+            'phone' => ['nullable','string', 'unique:users,phone,'.$id],
+            'role_id'=> ['integer'],
+            'address'=> ['nullable','string', 'max:255'],
+            'degree'=> ['nullable','string', 'max:255'],
+            'department'=> ['nullable','string', 'max:255']
         ]);
     }
 
@@ -288,6 +252,19 @@ class RegisterController extends Controller
         );
     }
 
+       /**
+     * Get a validator for an incoming registration request.
+     *
+     * @param  array  $data
+     * @return \Illuminate\Contracts\Validation\Validator
+     */
+    protected function patientadmissionvalidator(array $data)
+    {
+        return Validator::make($data, [
+            'name' => ['required','string', 'max:255'],
+        ]);
+    }
+
 
     public function admitPatient(Request $request){
         $validator = $this->patientadmissionvalidator($request->all());
@@ -308,11 +285,34 @@ class RegisterController extends Controller
             'status' => true,
             'patient'=>[
                 'name'=>$patient->name,
-                'patient_id'=>$patient->id
+                'patient_id'=>(int)$patient->id
 
                 ]
             ]
         );
+    }
+
+
+
+
+
+
+     
+
+   
+
+     /**
+     * Get a validator for an incoming registration request.
+     *
+     * @param  array  $data
+     * @return \Illuminate\Contracts\Validation\Validator
+     */
+    protected function patientassignvalidator(array $data)
+    {
+        return Validator::make($data, [
+            'patient_id' => ['required','integer', 'exists:patients,id'],
+            'assigned_to_id' => ['required','integer', 'exists:users,id'],
+        ]);
     }
 
 
@@ -342,13 +342,28 @@ class RegisterController extends Controller
             'message' => "Successfully Assigned to Patient.",
             'status' => true,
             'assignment'=>[
-                'patient_id'=>$patient_id,
-                'assinged_to_id'=>$assigned_to_id,
-                'patient_assignment_id'=>$patientasignment->id
+                'patient_id'=>(int)$patient_id,
+                'assinged_to_id'=>(int)$assigned_to_id,
+                'patient_assignment_id'=>(int)$patientasignment->id
                 ]
             ]
         );
     }
+
+
+    /**
+     * Get a validator for an incoming registration request.
+     *
+     * @param  array  $data
+     * @return \Illuminate\Contracts\Validation\Validator
+     */
+    protected function patientunassignvalidator(array $data)
+    {
+        return Validator::make($data, [
+            'patient_assignment_id' => ['required','integer', 'exists:patients_assignment,id'],
+        ]);
+    }
+
 
 
      public function unassignToPatient(Request $request){
@@ -468,7 +483,7 @@ class RegisterController extends Controller
             'message' => "Form Created Successfully.",
             'status' => true,
             'form'=>[
-                'form_id'=>$form->id
+                'form_id'=>(int)$form->id
                 ]
             ]
         );
