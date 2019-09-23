@@ -617,7 +617,7 @@ class RegisterController extends Controller
 
             }else{
                 $invalid_form_fields_value =true;
-                $message="invalid json, id should be present and valid or value should be present";
+                $message="invalid json, id should be present and valid or data should be present";
                 break;
             }
 
@@ -705,7 +705,6 @@ class RegisterController extends Controller
 
       public function getNotifications(Request $request){
         $user_id=Auth::User()->id;
-        $user_id=2;
         $notifications=Notifications::select('id','message', 'read')->where('user_id', $user_id)->get()->toArray();
 
         return ApiResponse::success([
@@ -719,7 +718,6 @@ class RegisterController extends Controller
       public function markNotificationRead(Request $request){
         $id = $request->get('id');
         $user_id=Auth::User()->id;
-        $user_id=2;
         $notifications=Notifications::where('user_id', $user_id)->where('id', $id)->update(['read'=>1]);
 
         return ApiResponse::success([
