@@ -493,13 +493,19 @@ class RegisterController extends Controller
             }
         }
 
+        $form_fields = FormFields::select('id','name','form_fields_type_id','order','hidden')->orderby('order')->where('form_id', $form_id)->get()->toArray();
+
+        if(count($form_fields)==0){
+         $form_fields=new \stdClass;
+        }
+
 
          return ApiResponse::success([
             'message' => "Form Created Successfully.",
             'status' => true,
             'form'=>[
                 'form_id'=>(int)$form->id,
-                'form_fields'=>$form_fields_arr
+                'form_fields'=>$form_fields
                 ]
             ]
         );
