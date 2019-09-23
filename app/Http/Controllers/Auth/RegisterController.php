@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\{User,Patients,PatientsAssignment,Form, FormFields, FormFieldTypes};
+use App\{User,Patients,PatientsAssignment,Form, FormFields, FormFieldTypes,FormPatients,FormPatientsData,Notifications};
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
@@ -74,13 +74,13 @@ class RegisterController extends Controller
 
         $user= $this->create($request->all());
 
-        if(Auth::Check() && Auth::user()->role_id==0){    
-         $message="User Created."; 
+        if(Auth::Check() && Auth::user()->role_id==0){
+         $message="User Created.";
         }else{
             Auth::login($user);
             $message='User registered and Logged In';
         }
-        
+
 
         $profile=[
             'id'=>$user->id,
@@ -149,7 +149,7 @@ class RegisterController extends Controller
         if($role == 2 || $role == 3){
             $degree = $data['degree'] ?? '';
             $department = $data['department'] ?? '';
-        }   
+        }
 
         return User::create([
             'name' => $data['name'],
@@ -297,9 +297,9 @@ class RegisterController extends Controller
 
 
 
-     
 
-   
+
+
 
      /**
      * Get a validator for an incoming registration request.
@@ -330,7 +330,7 @@ class RegisterController extends Controller
 
 
        // dd($assinged_to_id);
-        
+
         $patientasignment = PatientsAssignment::create([
             'patient_id'=>$patient_id,
             'assigned_to_id'=>$assigned_to_id,
@@ -375,7 +375,7 @@ class RegisterController extends Controller
         $patient_assignment_id=$request->get('patient_assignment_id');
         $user = Auth::User();
         $user_id= $user->id;
-        
+
         $patientasignment = PatientsAssignment::find($patient_assignment_id);
 
         if($patientasignment){
@@ -391,7 +391,19 @@ class RegisterController extends Controller
     }
 
 
-      /**
+    public function getFormFieldTypes(Request $request){
+         $master_form_filed_types=FormFieldTypes::select('id', 'type')->get()->toArray();
+
+         return ApiResponse::success([
+                'message' => "Form field type found.",
+                'status' => true,
+                'form_field_types'=>$master_form_filed_types
+                ]
+            );
+    }
+
+
+    /**
      * Get a validator for an incoming registration request.
      *
      * @param  array  $data
@@ -406,26 +418,28 @@ class RegisterController extends Controller
     }
 
     public function createForm(Request $request){
+        $form_fields_data=[];
+        $invalid_form=false;
 
-         $validator = $this->createFormvalidator($request->all());
+        $user = Auth::User();
+        $user_id= $user->id;
+
+        $validator = $this->createFormvalidator($request->all());
         if($validator->fails()){
            return  ApiResponse::validationFailed($validator->errors()->toArray());
         }
 
         $name = $request->get('name');
-
         $fields = $request->get('fields');
 
-        $user = Auth::User();
-        $user_id= $user->id;
 
-        
+        $form_fields= json_decode($fields, true);
+        if(!$form_fields){
+            return ApiResponse::validationFailed(['fields'=>"invalid json"]);
+        }
 
         $master_form_filed_types=FormFieldTypes::pluck('id')->toArray();
 
-        $form_fields= json_decode($fields, true);
-        $form_fields_data=[];
-        $invalid_form=false;
         foreach ($form_fields as $fields_arr) {
             if(isset($fields_arr['name']) && isset($fields_arr['form_fields_type_id']) && isset($fields_arr['order']) && isset($fields_arr['hidden'] ) ){
 
@@ -468,13 +482,14 @@ class RegisterController extends Controller
 
         if(sizeof($form_fields_data)>0){
             $form = Form::create([
-            'name'=>$name,
-            'type'=>'',
-            'created_by_id'=>$user_id
-        ]);
-              foreach ($form_fields_data as $form_fields_arr) {
+                'name'=>$name,
+                'type'=>'',
+                'created_by_id'=>$user_id
+            ]);
+
+            foreach ($form_fields_data as $form_fields_arr) {
                 $form_fields_arr['form_id']=$form->id;
-            FormFields::create($form_fields_arr);
+                FormFields::create($form_fields_arr);
             }
         }
 
@@ -483,10 +498,228 @@ class RegisterController extends Controller
             'message' => "Form Created Successfully.",
             'status' => true,
             'form'=>[
-                'form_id'=>(int)$form->id
+                'form_id'=>(int)$form->id,
+                'form_fields'=>$form_fields_arr
                 ]
             ]
         );
 
     }
+
+    public function getForm(Request $request ,$form_id){
+        $form  = Form::find($form_id);
+        if($form){
+           $form_fields = FormFields::select('id','name','form_fields_type_id','order','hidden')->orderby('order')->where('form_id', $form_id)->get()->toArray();
+
+           if(count($form_fields)==0){
+            $form_fields=new \stdClass;
+           }
+
+           return ApiResponse::success([
+                'message' => "Form found.",
+                'status' => true,
+                'form'=>[
+                    'form_id'=>(int)$form->id,
+                    'form_fields'=>$form_fields
+                    ]
+                ]
+            );
+        }
+
+        return ApiResponse::success([
+                'message' => "Form not found.",
+                'status' => false,
+                'form'=>new \stdClass
+                ]
+            );
+    }
+
+
+
+    /**
+     * Get a validator for an incoming registration request.
+     *
+     * @param  array  $data
+     * @return \Illuminate\Contracts\Validation\Validator
+     */
+    protected function fillFormvalidator(array $data)
+    {
+        return Validator::make($data, [
+            'form_id' => ['required','integer','exists:form,id'],
+            'patient_id'=>['required', 'integer', 'exists:patients,id'],
+            'fields_value'=>['required', 'json']
+        ]);
+    }
+    public function fillForm(Request $request){
+        $invalid_form_fields_value=false;
+
+        $validator = $this->fillFormvalidator($request->all());
+        if($validator->fails()){
+           return  ApiResponse::validationFailed($validator->errors()->toArray());
+        }
+
+        $form_id = $request->get('form_id');
+        $patient_id = $request->get('patient_id');
+
+        $fields_value = $request->get('fields_value');
+
+        $notifications_to = explode(',', $request->get('notifications_to'));
+
+        $created_by_id=Auth::User()->id;
+
+        $form_fields_value= json_decode($fields_value, true);
+        if(!$fields_value){
+            return ApiResponse::validationFailed(['fields_value'=>"invalid json"]);
+        }
+
+        $form  = Form::find($form_id);
+        $patient = Patients::find($patient_id);
+
+        $form_fields=FormFields::select('form_fields.id as id', 'type')->leftjoin('form_field_types','form_field_types.id', 'form_fields_type_id')->where('form_id', $form_id)->get()->toArray();
+
+        if(!$form_fields){
+            return ApiResponse::validationFailed(['form_id'=>"form is empty"]);
+        }
+
+        foreach ($form_fields as $form_fields_arr) {
+            $form_fields_mapped[$form_fields_arr['id']]=$form_fields_arr['type'];
+        }
+
+        $form_fields_mapped_ids=array_keys($form_fields_mapped);
+
+        $form_filled_data=[];
+        foreach ($form_fields_value as $form_fields_value_arr) {
+
+            if(isset($form_fields_value_arr['id']) && isset($form_fields_value_arr['data']) && in_array($form_fields_value_arr['id'], $form_fields_mapped_ids)){
+
+                $id=$form_fields_value_arr['id'];
+                $value=$form_fields_value_arr['data'];
+                $type=$form_fields_mapped[$id];
+
+                // checkbox
+                if($type == 2 && !in_array($value, [0,1])){
+                  $invalid_form_fields_value =true;
+                  $message="invalid json, checkbox type can only have value 0 or 1";
+                  break;
+                }
+
+
+                $form_filled_data[]=[
+                    'form_fields_id'=>$id,
+                    'data'=> $value
+                ];
+
+            }else{
+                $invalid_form_fields_value =true;
+                $message="invalid json, id should be present and valid or value should be present";
+                break;
+            }
+
+        }
+
+
+        if($invalid_form_fields_value){
+            return ApiResponse::validationFailed(['fields_value'=>$message]);
+        }
+
+        if(count($form_filled_data)>0){
+          $form_patients =FormPatients::create([
+            'form_id'=>$form_id,
+            'patient_id'=>$patient_id,
+            'created_by_id'=>$created_by_id
+
+          ]);
+
+          foreach ($form_filled_data as $form_filled_data_arr) {
+            $form_filled_data_arr['form_patients_id']=$form_patients->id;
+            FormPatientsData::create($form_filled_data_arr);
+          }
+
+
+          $notification_to_users=PatientsAssignment::join('users', 'users.id', 'assigned_to_id')->where('patient_id', $patient_id)->whereIn('users.role_id',   $notifications_to)->get();
+
+          foreach ($notification_to_users as $users) {
+            Notifications::create([
+              'type'=>'form',
+              'user_id'=>$users->id,
+              'message'=>$form->name." got filled for patient ".$patient->name.".",
+              'read'=>0
+            ]);
+          }
+
+
+          return ApiResponse::success([
+                  'message' => "Form Filled Successfully.",
+                  'status' => true,
+                  'form_patients_id'=>$form_patients->id
+                  ]
+              );
+
+        }
+
+    }
+
+      public function getfilledForm(Request $request, $form_patients_id){
+
+        $patient_form=FormPatients::find($form_patients_id);
+        if(!$patient_form){
+          return ApiResponse::validationFailed(['form_patients_id'=>"patient form does not exists"]);
+        }
+        $patient_form_data=FormPatientsData::select('form_fields_id', 'data')->where('form_patients_id',$form_patients_id)->get();
+
+        if(!$patient_form){
+          return ApiResponse::validationFailed(['form_patients_id'=>"form is empty"]);
+        }
+
+        $form= Form::find($patient_form->form_id);
+
+        if(!$form){
+          return ApiResponse::validationFailed(['form_patients_id'=>"orignal form does not exists"]);
+        }
+
+        $form_fields = FormFields::select('id','name','form_fields_type_id','order','hidden')
+                        ->orderby('order')->where('form_id', $patient_form->form_id)->get()->toArray();
+
+        if(count($form_fields)==0){
+         $form_fields=new \stdClass;
+        }
+
+        return ApiResponse::success([
+                'message' => "Filled Form found.",
+                'status' => true,
+                'fields_value'=>$patient_form_data,
+                'form'=>[
+                    'form_id'=>(int)$form->id,
+                    'form_fields'=>$form_fields
+                    ]
+                ]
+            );
+
+      }
+
+      public function getNotifications(Request $request){
+        $user_id=Auth::User()->id;
+        $user_id=2;
+        $notifications=Notifications::select('id','message', 'read')->where('user_id', $user_id)->get()->toArray();
+
+        return ApiResponse::success([
+                'message' => "Notifications",
+                'status' => true,
+                'notifications'=>$notifications
+              ]
+            );
+      }
+
+      public function markNotificationRead(Request $request){
+        $id = $request->get('id');
+        $user_id=Auth::User()->id;
+        $user_id=2;
+        $notifications=Notifications::where('user_id', $user_id)->where('id', $id)->update(['read'=>1]);
+
+        return ApiResponse::success([
+                'message' => "Notifications marked read",
+                'status' => true
+              ]
+            );
+      }
 }
