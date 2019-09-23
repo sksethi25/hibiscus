@@ -493,7 +493,7 @@ class RegisterController extends Controller
             }
         }
 
-        $form_fields = FormFields::select('id','name','form_fields_type_id','order','hidden')->orderby('order')->where('form_id', $form_id)->get()->toArray();
+        $form_fields = FormFields::select('id','name','form_fields_type_id','order','hidden')->orderby('order')->where('form_id', $form->id)->get()->toArray();
 
         if(count($form_fields)==0){
          $form_fields=new \stdClass;
