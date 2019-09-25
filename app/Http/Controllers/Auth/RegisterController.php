@@ -512,6 +512,16 @@ class RegisterController extends Controller
 
     }
 
+    public function getFormList(Request $request){
+      $forms  = Form::select("id","name")->get()->toArray();
+      return ApiResponse::success([
+           'message' => "Forms found.",
+           'status' => true,
+           'forms'=>$forms
+           ]
+       );
+    }
+
     public function getForm(Request $request ,$form_id){
         $form  = Form::find($form_id);
         if($form){
@@ -701,6 +711,20 @@ class RegisterController extends Controller
                 ]
             );
 
+      }
+
+      public function getPatientsFilledFormList(Request $request){
+        $user_id=Auth::User()->id;
+        
+        $patient_forms=FormPatients::select("form_patients.id as form_patients_id", "form_id", "form.name")
+                        ->join('form', 'form.id', 'form_id')->where('form_patients.patient_id', $user_id)->get()->toArray();
+
+        return ApiResponse::success([
+             'message' => "Forms found.",
+             'status' => true,
+             'forms'=>$patient_forms
+             ]
+         );
       }
 
       public function getNotifications(Request $request){

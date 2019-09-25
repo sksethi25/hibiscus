@@ -92,9 +92,14 @@ $router->group(
         Route::post('form/create', 'Auth\RegisterController@createForm')->name("create_form");
 
 
+
         Route::post('form/fill', 'Auth\RegisterController@fillForm')->name("fill_form");
-          Route::get('form/fill/{form_patients_id}', 'Auth\RegisterController@getfilledForm')->name("get_filled_form");
+        Route::get('form/fill/{form_patients_id}', 'Auth\RegisterController@getfilledForm')->name("get_filled_form");
+        Route::get('form/fill', 'Auth\RegisterController@getPatientsFilledFormList')->name("get_filled_form_list");
+
+
         Route::get('form/fetch/{form_id}', 'Auth\RegisterController@getForm')->name("get_form");
+        Route::get('form/fetch', 'Auth\RegisterController@getFormList')->name("get_form_list");
 
         Route::post('user/notifications/mark', 'Auth\RegisterController@markNotificationRead')->name("user_notifications");
         Route::get('user/notifications', 'Auth\RegisterController@getNotifications')->name("user_notifications_mark");
