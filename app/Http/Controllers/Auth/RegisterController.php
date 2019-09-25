@@ -128,13 +128,6 @@ class RegisterController extends Controller
         }
     }
 
-
-
-
-
-
-
-
     /**
      * Create a new user instance after a valid registration.
      *
@@ -291,15 +284,6 @@ class RegisterController extends Controller
             ]
         );
     }
-
-
-
-
-
-
-
-
-
 
      /**
      * Get a validator for an incoming registration request.
@@ -714,7 +698,7 @@ class RegisterController extends Controller
       }
 
       public function getPatientsFilledFormList(Request $request){
-        $user_id=Auth::User()->id;
+        $user_id=$request->get('patient_id');
         
         $patient_forms=FormPatients::select("form_patients.id as form_patients_id", "form_id", "form.name")
                         ->join('form', 'form.id', 'form_id')->where('form_patients.patient_id', $user_id)->get()->toArray();
