@@ -697,11 +697,9 @@ class RegisterController extends Controller
 
       }
 
-      public function getPatientsFilledFormList(Request $request){
-        $user_id=$request->get('patient_id');
-        
+      public function getPatientsFilledFormList(Request $request, $patient_id){
         $patient_forms=FormPatients::select("form_patients.id as form_patients_id", "form_id", "form.name")
-                        ->join('form', 'form.id', 'form_id')->where('form_patients.patient_id', $user_id)->get()->toArray();
+                        ->join('form', 'form.id', 'form_id')->where('form_patients.patient_id', $patient_id)->get()->toArray();
 
         return ApiResponse::success([
              'message' => "Forms found.",
