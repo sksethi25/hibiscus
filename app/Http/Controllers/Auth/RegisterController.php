@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\{User,Patients,PatientsAssignment,Form, FormFields, FormFieldTypes,FormPatients,FormPatientsData,Notifications};
+use App\{User,Patients,PatientsAssignment,Form, FormFields, 
+    FormFieldTypes,FormPatients,FormPatientsData,Notifications, Role};
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
@@ -332,6 +333,47 @@ class RegisterController extends Controller
                 ]
             ]
         );
+    }
+    public function getRoles(Request $request){
+      
+      $roles=Role::select('id', 'name')->get()->toArray();
+      return ApiResponse::success([
+             'message' => "Roles found",
+             'status' => true,
+             'assignment'=>$roles
+             ]
+         );
+    }
+    
+    public function getAssignedPatients(Request $request){
+        $user = Auth::User();
+        $user_id= $user->id;
+        $patientasignment = PatientsAssignment::select('patient_id','patients.name as patient_name', 
+          'patients_assignment.id as patient_assignment_id', 'assigned_to_id')
+        ->join('patients', 'patients.id', 'patient_id')->where('assigned_to_id', $user_id)->get()->toArray();
+        return ApiResponse::success([
+               'message' => "patients found",
+               'status' => true,
+               'assignment'=>$patientasignment
+               ]
+           );
+    }
+    
+    
+    public function getAssignedUsers(Request $request, $patient_id){
+        $patientasignment = PatientsAssignment::select('patient_id','patients.name as patient_name', 
+          'patients_assignment.id as patient_assignment_id', 
+          'assigned_to_id', 'users.name as assigned_to_name', 'users.role_id', 'role.name as role_name')
+        ->join('patients', 'patients.id', 'patient_id')
+        ->join('users', 'users.id', 'assigned_to_id')
+        ->join('role', 'users.role_id', 'role.id')
+        ->where('patient_id', $patient_id)->get()->toArray();
+        return ApiResponse::success([
+               'message' => "Users found",
+               'status' => true,
+               'assignment'=>$patientasignment
+               ]
+           );
     }
 
 

@@ -86,6 +86,12 @@ $router->group(
         Route::post('patient/add', 'Auth\RegisterController@admitPatient')->name("admit_patient");
         Route::post('patient/assign', 'Auth\RegisterController@assignToPatient')->name("assign_to_patient");
         Route::post('patient/unassign', 'Auth\RegisterController@unassignToPatient')->name("unassign_to_patient");
+        Route::get('users/patients', 'Auth\RegisterController@getAssignedPatients')->name("admit_patient");
+        
+        Route::get('patient/assigned/{patient_id}', 'Auth\RegisterController@getAssignedUsers')->name("admit_patient");
+        Route::get('user/roles', 'Auth\RegisterController@getRoles')->name("admit_patient");
+        
+        
 
 
         Route::get('form/fieldtypes', 'Auth\RegisterController@getFormFieldTypes')->name("get_form_field_types");
