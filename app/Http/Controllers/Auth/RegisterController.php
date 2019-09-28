@@ -605,7 +605,8 @@ class RegisterController extends Controller
 
         $fields_value = $request->get('fields_value');
 
-        $notifications_to = explode(',', $request->get('notifications_to'));
+        //$notifications_to = explode(',', $request->get('notifications_to'));
+        $notifications_to=[1,2,3,4];
 
         $created_by_id=Auth::User()->id;
 
